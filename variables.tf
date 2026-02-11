@@ -83,21 +83,21 @@ EOT
     sku                                   = string
     type                                  = string
     tags                                  = optional(map(string))
-    remote_vnet_traffic_enabled           = optional(bool, false)
+    remote_vnet_traffic_enabled           = optional(bool) # Default: false
     private_ip_address_enabled            = optional(bool)
-    ip_sec_replay_protection_enabled      = optional(bool, true)
+    ip_sec_replay_protection_enabled      = optional(bool) # Default: true
     generation                            = optional(string)
     dns_forwarding_enabled                = optional(bool)
     edge_zone                             = optional(string)
-    virtual_wan_traffic_enabled           = optional(bool, false)
+    virtual_wan_traffic_enabled           = optional(bool) # Default: false
     default_local_network_gateway_id      = optional(string)
-    bgp_route_translation_for_nat_enabled = optional(bool, false)
+    bgp_route_translation_for_nat_enabled = optional(bool) # Default: false
     active_active                         = optional(bool)
     enable_bgp                            = optional(bool)
-    vpn_type                              = optional(string, "RouteBased")
+    vpn_type                              = optional(string) # Default: "RouteBased"
     ip_configuration = list(object({
-      name                          = optional(string, "vnetGatewayConfig")
-      private_ip_address_allocation = optional(string, "Dynamic")
+      name                          = optional(string) # Default: "vnetGatewayConfig"
+      private_ip_address_allocation = optional(string) # Default: "Dynamic"
       public_ip_address_id          = optional(string)
       subnet_id                     = string
     }))
@@ -113,14 +113,14 @@ EOT
       address_prefixes = optional(set(string))
     }))
     policy_group = optional(object({
-      is_default = optional(bool, false)
+      is_default = optional(bool) # Default: false
       name       = string
       policy_member = object({
         name  = string
         type  = string
         value = string
       })
-      priority = optional(number, 0)
+      priority = optional(number) # Default: 0
     }))
     vpn_client_configuration = optional(object({
       aad_audience  = optional(string)
