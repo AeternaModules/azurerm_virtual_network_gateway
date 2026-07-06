@@ -9,13 +9,16 @@ resource "azurerm_virtual_network_gateway" "virtual_network_gateways" {
   tags                                  = each.value.tags
   remote_vnet_traffic_enabled           = each.value.remote_vnet_traffic_enabled
   private_ip_address_enabled            = each.value.private_ip_address_enabled
+  minimum_scale_unit                    = each.value.minimum_scale_unit
+  maximum_scale_unit                    = each.value.maximum_scale_unit
   ip_sec_replay_protection_enabled      = each.value.ip_sec_replay_protection_enabled
   generation                            = each.value.generation
-  dns_forwarding_enabled                = each.value.dns_forwarding_enabled
   edge_zone                             = each.value.edge_zone
   virtual_wan_traffic_enabled           = each.value.virtual_wan_traffic_enabled
+  dns_forwarding_enabled                = each.value.dns_forwarding_enabled
   default_local_network_gateway_id      = each.value.default_local_network_gateway_id
   bgp_route_translation_for_nat_enabled = each.value.bgp_route_translation_for_nat_enabled
+  bgp_enabled                           = each.value.bgp_enabled
   active_active                         = each.value.active_active
   enable_bgp                            = each.value.enable_bgp
   vpn_type                              = each.value.vpn_type

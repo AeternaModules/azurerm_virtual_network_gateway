@@ -14,6 +14,7 @@ Required:
         - subnet_id (required)
 Optional:
     - active_active
+    - bgp_enabled
     - bgp_route_translation_for_nat_enabled
     - default_local_network_gateway_id
     - dns_forwarding_enabled
@@ -21,6 +22,8 @@ Optional:
     - enable_bgp
     - generation
     - ip_sec_replay_protection_enabled
+    - maximum_scale_unit
+    - minimum_scale_unit
     - private_ip_address_enabled
     - remote_vnet_traffic_enabled
     - tags
@@ -85,13 +88,16 @@ EOT
     tags                                  = optional(map(string))
     remote_vnet_traffic_enabled           = optional(bool) # Default: false
     private_ip_address_enabled            = optional(bool)
+    minimum_scale_unit                    = optional(number)
+    maximum_scale_unit                    = optional(number)
     ip_sec_replay_protection_enabled      = optional(bool) # Default: true
     generation                            = optional(string)
-    dns_forwarding_enabled                = optional(bool)
     edge_zone                             = optional(string)
     virtual_wan_traffic_enabled           = optional(bool) # Default: false
+    dns_forwarding_enabled                = optional(bool)
     default_local_network_gateway_id      = optional(string)
     bgp_route_translation_for_nat_enabled = optional(bool) # Default: false
+    bgp_enabled                           = optional(bool)
     active_active                         = optional(bool)
     enable_bgp                            = optional(bool)
     vpn_type                              = optional(string) # Default: "RouteBased"
@@ -177,5 +183,196 @@ EOT
     ])
     error_message = "Each peering_addresses list must contain between 1 and 2 items"
   }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        length(v.name) > 0
+      )
+    ])
+    error_message = "must not be empty"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.edge_zone == null || (length(v.edge_zone) > 0)
+      )
+    ])
+    error_message = "must not be empty"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.policy_group == null || (length(v.policy_group.policy_member.name) > 0)
+      )
+    ])
+    error_message = "must not be empty"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.policy_group == null || (length(v.policy_group.policy_member.value) > 0)
+      )
+    ])
+    error_message = "must not be empty"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.policy_group == null || (v.policy_group.priority == null || (v.policy_group.priority >= 0))
+      )
+    ])
+    error_message = "must be at least 0"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.vpn_client_configuration == null || (v.vpn_client_configuration.virtual_network_gateway_client_connection == null || (length(v.vpn_client_configuration.virtual_network_gateway_client_connection.name) > 0))
+      )
+    ])
+    error_message = "must not be empty"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.vpn_client_configuration == null || (v.vpn_client_configuration.virtual_network_gateway_client_connection == null || (length(v.vpn_client_configuration.virtual_network_gateway_client_connection.address_prefixes) > 0))
+      )
+    ])
+    error_message = "must not be empty"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.vpn_client_configuration == null || (v.vpn_client_configuration.ipsec_policy == null || (v.vpn_client_configuration.ipsec_policy.sa_lifetime_in_seconds >= 300 && v.vpn_client_configuration.ipsec_policy.sa_lifetime_in_seconds <= 172799))
+      )
+    ])
+    error_message = "must be between 300 and 172799"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.vpn_client_configuration == null || (v.vpn_client_configuration.radius_server == null || (length(v.vpn_client_configuration.radius_server.secret) >= 1 && length(v.vpn_client_configuration.radius_server.secret) <= 128))
+      )
+    ])
+    error_message = "must be between 1 and 128 characters"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.vpn_client_configuration == null || (v.vpn_client_configuration.radius_server == null || (v.vpn_client_configuration.radius_server.score >= 1 && v.vpn_client_configuration.radius_server.score <= 30))
+      )
+    ])
+    error_message = "must be between 1 and 30"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.maximum_scale_unit == null || (v.maximum_scale_unit >= 1 && v.maximum_scale_unit <= 40)
+      )
+    ])
+    error_message = "must be between 1 and 40"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.minimum_scale_unit == null || (v.minimum_scale_unit >= 1 && v.minimum_scale_unit <= 40)
+      )
+    ])
+    error_message = "must be between 1 and 40"
+  }
+  # --- Unconfirmed validation candidates, derived from azurerm_virtual_network_gateway's provider source ---
+  # Not auto-enabled: either a bespoke provider validator we can't safely translate,
+  # or a path that crosses a list-typed block (needs its own for_each wrapping).
+  # Review, translate into a real validation{} block above, and delete once confirmed.
+  # path: resource_group_name
+  #   condition: length(value) <= 90
+  #   message:   [from resourcegroups.ValidateName: invalid when len(value) > 90]
+  #   source:    [from resourcegroups.ValidateName: invalid when len(value) > 90]
+  # path: resource_group_name
+  #   condition: !endswith(value, ".")
+  #   message:   [from resourcegroups.ValidateName: must not end with "."]
+  #   source:    [from resourcegroups.ValidateName: must not end with "."]
+  # path: resource_group_name
+  #   condition: length(value) != 0
+  #   message:   [from resourcegroups.ValidateName: invalid when len(value) == 0]
+  #   source:    [from resourcegroups.ValidateName: invalid when len(value) == 0]
+  # path: resource_group_name
+  #   source:    [from resourcegroups.ValidateName] !matched
+  # path: location
+  #   source:    location.EnhancedValidate: no recognizable `if ... { errors = append(...) }` pattern - read it by hand
+  # path: type
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_type
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: sku
+  #   source:    validation.Any(...) - no translation rule yet, add one
+  # path: generation
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: ip_configuration.private_ip_address_allocation
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: ip_configuration.subnet_id
+  #   source:    [from validate.IsGatewaySubnet] !ok
+  # path: ip_configuration.subnet_id
+  #   source:    [from validate.IsGatewaySubnet] err != nil
+  # path: ip_configuration.subnet_id
+  #   source:    [from validate.IsGatewaySubnet] !strings.EqualFold(id.SubnetName, "GatewaySubnet")
+  # path: ip_configuration.public_ip_address_id
+  #   source:    [from commonids.ValidatePublicIPAddressID] !ok
+  # path: ip_configuration.public_ip_address_id
+  #   source:    [from commonids.ValidatePublicIPAddressID] err != nil
+  # path: policy_group.name
+  #   source:    validate.PolicyGroupName: no recognizable `if ... { errors = append(...) }` pattern - read it by hand
+  # path: policy_group.policy_member.type
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.virtual_network_gateway_client_connection.policy_group_names[*]
+  #   source:    validate.PolicyGroupName: no recognizable `if ... { errors = append(...) }` pattern - read it by hand
+  # path: vpn_client_configuration.ipsec_policy.dh_group
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.ipsec_policy.ike_encryption
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.ipsec_policy.ike_integrity
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.ipsec_policy.ipsec_encryption
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.ipsec_policy.ipsec_integrity
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.ipsec_policy.pfs_group
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.ipsec_policy.sa_data_size_in_kilobytes
+  #   source:    validation.IntBetween(1024, math.MaxInt32) - bound(s) not a literal int (e.g. a named constant like math.MaxInt32) - resolve manually
+  # path: vpn_client_configuration.radius_server.address
+  #   source:    validation.IsIPv4Address(...) - no translation rule yet, add one
+  # path: vpn_client_configuration.radius_server_address
+  #   source:    validation.IsIPv4Address(...) - no translation rule yet, add one
+  # path: vpn_client_configuration.vpn_auth_types[*]
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: vpn_client_configuration.vpn_client_protocols[*]
+  #   source:    validation.StringInSlice value list is not a literal []string - likely a generated PossibleValuesFor*() helper; resolve separately
+  # path: bgp_settings.peering_addresses.ip_configuration_name
+  #   condition: length(value) > 0
+  #   message:   must not be empty
+  # path: bgp_settings.peering_addresses.apipa_addresses[*]
+  #   source:    [from validate.IPAddressInAzureReservedAPIPARange] !ok
+  # path: bgp_settings.peering_addresses.apipa_addresses[*]
+  #   source:    [from validate.IPAddressInAzureReservedAPIPARange] four == nil
+  # path: bgp_settings.peering_addresses.apipa_addresses[*]
+  #   source:    [from validate.IPAddressInAzureReservedAPIPARange] bytes.Compare(ip, azureAPIPAStart) < 0 || bytes.Compare(ip, azureAPIPAEnd) > 0
+  # path: default_local_network_gateway_id
+  #   source:    [from localnetworkgateways.ValidateLocalNetworkGatewayID] !ok
+  # path: default_local_network_gateway_id
+  #   source:    [from localnetworkgateways.ValidateLocalNetworkGatewayID] err != nil
+  # path: tags
+  #   condition: length(value) <= 50
+  #   message:   [from tags.Validate: invalid when len(value) > 50]
+  #   source:    [from tags.Validate: invalid when len(value) > 50]
+  # path: tags
+  #   condition: length(value) <= 512
+  #   message:   [from tags.Validate: invalid when len(value) > 512]
+  #   source:    [from tags.Validate: invalid when len(value) > 512]
+  # path: tags
+  #   source:    [from tags.Validate] err != nil
+  # path: tags
+  #   condition: length(value) <= 256
+  #   message:   [from tags.Validate: invalid when len(value) > 256]
+  #   source:    [from tags.Validate: invalid when len(value) > 256]
 }
 
