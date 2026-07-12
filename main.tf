@@ -56,14 +56,17 @@ resource "azurerm_virtual_network_gateway" "virtual_network_gateways" {
   }
 
   dynamic "policy_group" {
-    for_each = each.value.policy_group != null ? [each.value.policy_group] : []
+    for_each = each.value.policy_group != null ? each.value.policy_group : []
     content {
       is_default = policy_group.value.is_default
       name       = policy_group.value.name
-      policy_member {
-        name  = policy_group.value.policy_member.name
-        type  = policy_group.value.policy_member.type
-        value = policy_group.value.policy_member.value
+      dynamic "policy_member" {
+        for_each = policy_group.value.policy_member
+        content {
+          name  = policy_member.value.name
+          type  = policy_member.value.type
+          value = policy_member.value.value
+        }
       }
       priority = policy_group.value.priority
     }
@@ -90,7 +93,7 @@ resource "azurerm_virtual_network_gateway" "virtual_network_gateways" {
         }
       }
       dynamic "radius_server" {
-        for_each = vpn_client_configuration.value.radius_server != null ? [vpn_client_configuration.value.radius_server] : []
+        for_each = vpn_client_configuration.value.radius_server != null ? vpn_client_configuration.value.radius_server : []
         content {
           address = radius_server.value.address
           score   = radius_server.value.score
@@ -100,21 +103,21 @@ resource "azurerm_virtual_network_gateway" "virtual_network_gateways" {
       radius_server_address = vpn_client_configuration.value.radius_server_address
       radius_server_secret  = vpn_client_configuration.value.radius_server_secret
       dynamic "revoked_certificate" {
-        for_each = vpn_client_configuration.value.revoked_certificate != null ? [vpn_client_configuration.value.revoked_certificate] : []
+        for_each = vpn_client_configuration.value.revoked_certificate != null ? vpn_client_configuration.value.revoked_certificate : []
         content {
           name       = revoked_certificate.value.name
           thumbprint = revoked_certificate.value.thumbprint
         }
       }
       dynamic "root_certificate" {
-        for_each = vpn_client_configuration.value.root_certificate != null ? [vpn_client_configuration.value.root_certificate] : []
+        for_each = vpn_client_configuration.value.root_certificate != null ? vpn_client_configuration.value.root_certificate : []
         content {
           name             = root_certificate.value.name
           public_cert_data = root_certificate.value.public_cert_data
         }
       }
       dynamic "virtual_network_gateway_client_connection" {
-        for_each = vpn_client_configuration.value.virtual_network_gateway_client_connection != null ? [vpn_client_configuration.value.virtual_network_gateway_client_connection] : []
+        for_each = vpn_client_configuration.value.virtual_network_gateway_client_connection != null ? vpn_client_configuration.value.virtual_network_gateway_client_connection : []
         content {
           address_prefixes   = virtual_network_gateway_client_connection.value.address_prefixes
           name               = virtual_network_gateway_client_connection.value.name
