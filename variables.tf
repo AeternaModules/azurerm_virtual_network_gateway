@@ -178,7 +178,7 @@ EOT
   validation {
     condition = alltrue([
       for k, v in var.virtual_network_gateways : (
-        v.bgp_settings.peering_addresses == null || (length(v.bgp_settings.peering_addresses) >= 1 && length(v.bgp_settings.peering_addresses) <= 2)
+        v.bgp_settings == null || (v.bgp_settings.peering_addresses == null || (length(v.bgp_settings.peering_addresses) >= 1 && length(v.bgp_settings.peering_addresses) <= 2))
       )
     ])
     error_message = "Each peering_addresses list must contain between 1 and 2 items"
