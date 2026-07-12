@@ -1,3 +1,7 @@
+output "virtual_network_gateways_id" {
+  description = "Map of id values across all virtual_network_gateways, keyed the same as var.virtual_network_gateways"
+  value       = { for k, v in azurerm_virtual_network_gateway.virtual_network_gateways : k => v.id }
+}
 output "virtual_network_gateways_active_active" {
   description = "Map of active_active values across all virtual_network_gateways, keyed the same as var.virtual_network_gateways"
   value       = { for k, v in azurerm_virtual_network_gateway.virtual_network_gateways : k => v.active_active }
