@@ -86,24 +86,24 @@ EOT
     sku                                   = string
     type                                  = string
     tags                                  = optional(map(string))
-    remote_vnet_traffic_enabled           = optional(bool) # Default: false
+    remote_vnet_traffic_enabled           = optional(bool)
     private_ip_address_enabled            = optional(bool)
     minimum_scale_unit                    = optional(number)
     maximum_scale_unit                    = optional(number)
-    ip_sec_replay_protection_enabled      = optional(bool) # Default: true
+    ip_sec_replay_protection_enabled      = optional(bool)
     generation                            = optional(string)
     edge_zone                             = optional(string)
-    virtual_wan_traffic_enabled           = optional(bool) # Default: false
+    virtual_wan_traffic_enabled           = optional(bool)
     dns_forwarding_enabled                = optional(bool)
     default_local_network_gateway_id      = optional(string)
-    bgp_route_translation_for_nat_enabled = optional(bool) # Default: false
+    bgp_route_translation_for_nat_enabled = optional(bool)
     bgp_enabled                           = optional(bool)
     active_active                         = optional(bool)
     enable_bgp                            = optional(bool)
-    vpn_type                              = optional(string) # Default: "RouteBased"
+    vpn_type                              = optional(string)
     ip_configuration = list(object({
-      name                          = optional(string) # Default: "vnetGatewayConfig"
-      private_ip_address_allocation = optional(string) # Default: "Dynamic"
+      name                          = optional(string)
+      private_ip_address_allocation = optional(string)
       public_ip_address_id          = optional(string)
       subnet_id                     = string
     }))
@@ -119,14 +119,14 @@ EOT
       address_prefixes = optional(set(string))
     }))
     policy_group = optional(list(object({
-      is_default = optional(bool) # Default: false
+      is_default = optional(bool)
       name       = string
       policy_member = list(object({
         name  = string
         type  = string
         value = string
       }))
-      priority = optional(number) # Default: 0
+      priority = optional(number)
     })))
     vpn_client_configuration = optional(object({
       aad_audience  = optional(string)
@@ -170,18 +170,26 @@ EOT
   validation {
     condition = alltrue([
       for k, v in var.virtual_network_gateways : (
-        length(v.ip_configuration) <= 3
+        length(v.ip_configuration) >= 1 && length(v.ip_configuration) <= 3
       )
     ])
-    error_message = "Each ip_configuration list must contain at most 3 items"
+    error_message = "Each ip_configuration list must contain between 1 and 3 items"
   }
   validation {
     condition = alltrue([
       for k, v in var.virtual_network_gateways : (
-        v.bgp_settings == null || (v.bgp_settings.peering_addresses == null || (length(v.bgp_settings.peering_addresses) >= 1 && length(v.bgp_settings.peering_addresses) <= 2))
+        v.bgp_settings == null || (v.bgp_settings.peering_addresses == null || (length(v.bgp_settings.peering_addresses) <= 2))
       )
     ])
-    error_message = "Each peering_addresses list must contain between 1 and 2 items"
+    error_message = "Each peering_addresses list must contain at most 2 items"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.virtual_network_gateways : (
+        v.policy_group == null || alltrue([for item in v.policy_group : (length(item.policy_member) >= 1)])
+      )
+    ])
+    error_message = "Each policy_member list must contain at least 1 items"
   }
   # --- Unconfirmed validation candidates, derived from azurerm_virtual_network_gateway's provider source ---
   # Not auto-enabled: either a bespoke provider validator we can't safely translate,
